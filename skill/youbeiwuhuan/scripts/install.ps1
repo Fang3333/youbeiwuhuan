@@ -27,8 +27,9 @@ Write-Host '  [1/3] Node.js 就绪'
 npm config set registry https://registry.npmmirror.com | Out-Null
 Write-Host '  [2/3] npm 已切国内镜像'
 
-# 3) 学号密码：只问一次，只存本机
-$cfg = Join-Path $PSScriptRoot 'config.json'
+# 3) 学号密码：只问一次，只存本机（存技能根目录，和抓取脚本路径对齐）
+$skillRoot = Split-Path $PSScriptRoot -Parent
+$cfg = Join-Path $skillRoot 'config.json'
 if (-not (Test-Path $cfg)) {
   Write-Host ''
   $sno = Read-Host '  学号'
@@ -41,7 +42,7 @@ if (-not (Test-Path $cfg)) {
     exit 1
   }
 } else {
-  Write-Host '  [3/3] 学号密码已配置（跳过询问）'
+  Write-Host '  [3/5] 学号密码已配置（跳过询问）'
 }
 
 # 4) 验证抓取（有 python 才做；没有也不阻塞）
@@ -52,8 +53,21 @@ if (Get-Command python -ErrorAction SilentlyContinue) {
   Write-Host '  （本机没装 python，跳过作业预检；问答功能由部署助手代为执行）'
 }
 
-# 5) 启动 DeepSeek Harness（首次会联网下载，网页自动打开）
+# 5) 把本技能装进 DeepSeek Harness 的技能目录（幂等）
+$dshSkills = Join-Path $env:USERPROFILE '.dsh\skills\youbeiwuhuan'
+New-Item -ItemType Directory -Force -Path $dshSkills | Out-Null
+Copy-Item (Join-Path $skillRoot 'SKILL.md') $dshSkills -Force
+Copy-Item (Join-Path $skillRoot 'scripts') (Join-Path $dshSkills 'scripts') -Recurse -Force
+Copy-Item (Join-Path $skillRoot 'assets') (Join-Path $dshSkills 'assets') -Recurse -Force
+if (Test-Path $cfg) { Copy-Item $cfg $dshSkills -Force }
+Write-Host '  [4/5] 技能已装进小管家'
+
+# 6) 启动 DeepSeek Harness（独立窗口运行，避免阻塞安装器）
 Write-Host ''
-Write-Host '  启动服务（首次下载要几分钟）...'
+Write-Host '  启动服务（首次下载要几分钟，稍后会自动打开网页）...'
+Start-Process powershell -WindowStyle Minimized -ArgumentList '-NoExit','-Command','npx -y @deepseek-ai/dsh web'
+Write-Host '  服务启动中…30 秒后自动打开网页 http://127.0.0.1:3080'
+Start-Sleep -Seconds 30
 Start-Process 'http://127.0.0.1:3080'
-npx -y @deepseek-ai/dsh web
+Write-Host ''
+Write-Host '  完成！网页已打开：登录你的账号，再让用户按 assets/手机端说明.txt 连上手机。'

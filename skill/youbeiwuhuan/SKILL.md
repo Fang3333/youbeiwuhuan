@@ -14,6 +14,8 @@ description: 北邮校园小管家，把课表、未交作业和校园通知自�
 2. 运行部署脚本（国内镜像加速，幂等，失败可重跑）：
    `powershell -ExecutionPolicy Bypass -File scripts/install.ps1`
    脚本会询问学号和教务密码——让用户自己输入，你绝不能报出、记录或写入回复。
+   脚本还会自动把本技能装进 DeepSeek Harness 的技能目录（`~/.dsh/skills/youbeiwuhuan/`）并拉起本地服务，不要你手动复制。
+   （技能根目录另有一键安装.bat，供用户不用 WorkBuddy 时自己双击。）
 3. 结束后浏览器会打开 http://127.0.0.1:3080 ：
    - 让用户登录他的账号、填一个模型 API Key（一句提示即可，不要替他输密钥）。
    - 再按 assets/手机端说明.txt 把手机连上（装 App → 登录 → 选这台电脑）。

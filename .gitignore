@@ -1,0 +1,5 @@
+# 学号密码 / 本地配置：绝不进 git
+skill/youbeiwuhuan/config.json
+config.json
+*.log
+__pycache__/

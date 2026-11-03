@@ -1,6 +1,9 @@
 【手机端接入 · 30 秒】
 
-前提：电脑端已用「一键安装.bat」跑起来（网页能打开）。
+前提：电脑端已装好（网页 http://127.0.0.1:3080 能打开）。
+没法在电脑上装？两种装法二选一：
+  · 让 WorkBuddy 装：对它说「帮我安装 youbeiwuhuan 这个技能并部署」
+  · 自己双击「一键安装.bat」：跟着提示输一次学号和教务密码
 
 第 1 步：手机上安装 DeepSeek Harness 客户端
   去 https://github.com/deepseek-ai/deepseek-harness/releases
