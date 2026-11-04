@@ -61,12 +61,41 @@ Copy-Item (Join-Path $skillRoot 'assets') (Join-Path $dshSkills 'assets') -Recur
 if (Test-Path $cfg) { Copy-Item $cfg $dshSkills -Force }
 Write-Host '  [4/5] 技能已装进小管家'
 
-# 6) 启动 DeepSeek Harness（独立窗口运行，避免阻塞安装器）
+# 6) 装免费模型（网页版登录插件，免 API key；装过则秒过）
+Write-Host '  [5/6] 准备模型接入（免费网页版，免 API key）...'
+if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
+  Write-Host '      正在装 pnpm ...'
+  npm install -g pnpm | Out-Null
+}
+git config --global 'url."git@github.com:".insteadOf' 'https://github.com/' | Out-Null
+$profYaml = Join-Path $env:USERPROFILE '.dsh\profiles\web\pnpm-workspace.yaml'
+New-Item -ItemType Directory -Force -Path (Split-Path $profYaml) | Out-Null
+Set-Content -Path $profYaml -Encoding UTF8 -Value @(
+  'packages:',
+  '  - .',
+  'nodeLinker: hoisted',
+  'allowBuilds:',
+  '  dsh-deepseek-web-login@https://codeload.github.com/cv-superding/dsh-deepseek-web-login/tar.gz/ece332e68bd74070263c30021e9878e422af6a8a: true'
+)
+Write-Host '      正在装模型插件（首次要下载几分钟）...'
+npx -y @deepseek-ai/dsh plugin --profile web add github:cv-superding/dsh-deepseek-web-login 2>&1 | Out-Null
+Write-Host '      模型插件已就绪'
+
+# 7) 查局域网 IP，启动服务并开放给手机
+$ip = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object {
+  $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' -and
+  $_.InterfaceAlias -notmatch 'VPN|Tailscale|Radmin|Loopback|vEthernet|VirtualBox|VMware|WSL'
+} | Select-Object -First 1).IPAddress
 Write-Host ''
-Write-Host '  启动服务（首次下载要几分钟，稍后会自动打开网页）...'
-Start-Process powershell -WindowStyle Minimized -ArgumentList '-NoExit','-Command','npx -y @deepseek-ai/dsh web'
-Write-Host '  服务启动中…30 秒后自动打开网页 http://127.0.0.1:3080'
-Start-Sleep -Seconds 30
-Start-Process 'http://127.0.0.1:3080'
+Write-Host '  [6/6] 启动服务（首次下载要几分钟，稍后会自动打开网页）...'
+if ($ip) {
+  Start-Process powershell -WindowStyle Minimized -ArgumentList '-NoExit','-Command',"npx -y @deepseek-ai/dsh web --host $ip"
+  Write-Host "  局域网地址（手机同 Wi-Fi 用）：http://${ip}:3080/"
+} else {
+  Start-Process powershell -WindowStyle Minimized -ArgumentList '-NoExit','-Command','npx -y @deepseek-ai/dsh web'
+  Write-Host '  未检测到局域网 IP，先用 http://127.0.0.1:3080'
+}
+Write-Host '  稍后浏览器自动打开：首次需登录你的 DeepSeek 账号（网页版）即可开始用。'
+Write-Host '  手机连接步骤见 assets/手机端说明.txt'
 Write-Host ''
-Write-Host '  完成！网页已打开：登录你的账号，再让用户按 assets/手机端说明.txt 连上手机。'
+Write-Host '  完成！'
