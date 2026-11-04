@@ -9,3 +9,6 @@ schedule.json
 # 教学云登录凭证缓存：不进 git
 skill/youbeiwuhuan/token_cache.json
 token_cache.json
+# 个人计划（健身/比赛/期中，含隐私）：绝不进 git
+skill/youbeiwuhuan/assets/个人计划.md
+skill/youbeiwuhuan/login_deepseek.py
