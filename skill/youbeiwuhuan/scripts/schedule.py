@@ -50,7 +50,11 @@ def parse_time(text):
 def _fmt(it, now):
     t = parse_time(it.get("时间", ""))
     d = dict(it)
-    d["过期"] = bool(t is not None and t < now)
+    ts = str(it.get("时间", "") or "").strip()
+    if len(ts) == 10:  # 只写了日期、没写时刻：当天不算过期
+        d["过期"] = bool(t is not None and t.date() < now.date())
+    else:
+        d["过期"] = bool(t is not None and t < now)
     d["今天"] = bool(t is not None and t.date() == now.date())
     return d
 
@@ -75,7 +79,7 @@ def cmd_today():
     return 0
 
 
-def cmd_add(name, when, note=""):
+def cmd_add(name, when, note="", cat="其他"):
     name = str(name or "").strip()
     if not name:
         print(json.dumps({"ok": False, "错误": "事项不能为空"}, ensure_ascii=False))
@@ -87,7 +91,8 @@ def cmd_add(name, when, note=""):
         return 1
     items = load()
     it = {"id": uuid.uuid4().hex[:8], "事项": name, "时间": when,
-          "备注": str(note or "").strip(), "完成": False}
+          "备注": str(note or "").strip(), "完成": False,
+          "分类": str(cat or "其他").strip()}
     items.append(it)
     save(items)
     print(json.dumps({"ok": True, "已添加": it}, ensure_ascii=False))
@@ -130,10 +135,11 @@ def main():
         return cmd_today()
     if cmd == "add":
         if len(args) < 3:
-            print(json.dumps({"ok": False, "用法": "add 事项 时间 [备注]"},
+            print(json.dumps({"ok": False, "用法": "add 事项 时间 [备注] [分类]"},
                              ensure_ascii=False))
             return 1
-        return cmd_add(args[1], args[2], args[3] if len(args) > 3 else "")
+        return cmd_add(args[1], args[2], args[3] if len(args) > 3 else "",
+                       args[4] if len(args) > 4 else "其他")
     if cmd == "done":
         return cmd_done(args[1]) if len(args) > 1 else 1
     if cmd == "del":
