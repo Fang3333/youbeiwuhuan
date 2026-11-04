@@ -13,6 +13,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import ucloud  # 同目录，教学云登录+作业接口（已实测可用）
+import login_playwright  # 学校加瑞数反爬后的浏览器兜底
 
 
 def main():
@@ -30,12 +31,18 @@ def main():
     if not sno or not pwd:
         print(json.dumps({"ok": False, "错误": "config.json 里没填学号或密码"}, ensure_ascii=False))
         return 1
+    items, err = None, None
     try:
         items, err = ucloud.fetch({"账号": {"学号": sno, "密码": pwd},
                                    "教学云": {"启用": True}}, force=True)
     except Exception as e:
-        print(json.dumps({"ok": False, "错误": str(e)}, ensure_ascii=False))
-        return 1
+        err = str(e)
+    if err:
+        # 纯 HTTP 登录被学校瑞数反爬拦（HTTP 401），改用真实浏览器登录
+        try:
+            items, err = login_playwright.fetch(sno, pwd)
+        except Exception as e:
+            err = str(e)
     if err:
         print(json.dumps({"ok": False, "错误": err}, ensure_ascii=False))
         return 1

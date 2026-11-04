@@ -3,3 +3,6 @@ skill/youbeiwuhuan/config.json
 config.json
 *.log
 __pycache__/
+# 个人日程数据：不进 git
+skill/youbeiwuhuan/schedule.json
+schedule.json

@@ -1,7 +1,6 @@
-# 邮备无患 · 一键部署（国内网络优化 · 幂等可重跑）
+﻿# 邮备无患 · 一键部署（国内网络优化 · 幂等可重跑）
 # WorkBuddy 安装技能后直接调用本脚本即可完成部署
 $ErrorActionPreference = 'Continue'
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 Write-Host ''
 Write-Host '  == 邮备无患 · 一键部署 =='
