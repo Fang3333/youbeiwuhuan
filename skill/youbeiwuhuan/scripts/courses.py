@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
-"""今日课表：调用 WTS-bupt-mcp 的 today-courses.mjs 抓移动教务当日课表。
+"""课表：调用 WTS-bupt-mcp 的 today-courses.mjs / week-courses.mjs 抓移动教务课表。
 
-node 与脚本路径优先读 config.json 的「个人课表」段，读不到就用本机默认路径。
-输出 JSON：{"ok": true, "课表": {date, weekday_name, week, courses:[...]}}
+用法：
+    python courses.py          今天的课
+    python courses.py --week   整周课表（周一~周日）
+
+node 与 WTS 目录优先读 config.json 的「个人课表」段，读不到就用本机默认路径。
 """
 import json
 import os
@@ -10,11 +13,13 @@ import subprocess
 import sys
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+WTS_DIR = r"d:\北京邮电\AI产物\Trae\07-校园工具\WTS-bupt-mcp"
 DEFAULT_NODE = r"d:\北京邮电\AI产物\Trae\07-校园工具\node\node.exe"
-DEFAULT_SCRIPT = r"d:\北京邮电\AI产物\Trae\07-校园工具\WTS-bupt-mcp\today-courses.mjs"
+SCRIPT_TODAY = "today-courses.mjs"
+SCRIPT_WEEK = "week-courses.mjs"
 
 
-def fetch():
+def fetch(mode="today"):
     cfg = {}
     p = os.path.join(BASE, "config.json")
     if os.path.exists(p):
@@ -25,7 +30,8 @@ def fetch():
             pass
     kb = cfg.get("个人课表") or {}
     node = str(kb.get("node") or DEFAULT_NODE)
-    script = str(kb.get("脚本") or DEFAULT_SCRIPT)
+    wts = str(kb.get("wts目录") or WTS_DIR)
+    script = os.path.join(wts, SCRIPT_WEEK if mode == "week" else SCRIPT_TODAY)
     if not (os.path.exists(node) and os.path.exists(script)):
         return None, "找不到课表脚本或 node.exe（见 config.json 的个人课表配置）"
     flags = 0x08000000 if os.name == "nt" else 0
@@ -43,11 +49,13 @@ def fetch():
 
 
 def main():
-    data, err = fetch()
+    mode = "week" if "--week" in sys.argv else "today"
+    data, err = fetch(mode)
     if err:
         print(json.dumps({"ok": False, "错误": err}, ensure_ascii=False))
         return 1
-    print(json.dumps({"ok": True, "课表": data}, ensure_ascii=False))
+    key = "课表" if mode == "today" else "整周课表"
+    print(json.dumps({"ok": True, key: data}, ensure_ascii=False))
     return 0
 
 
