@@ -47,6 +47,9 @@ def parse_time(text):
     return None
 
 
+WEEKDAY_CN = {0: "一", 1: "二", 2: "三", 3: "四", 4: "五", 5: "六", 6: "日"}
+
+
 def _fmt(it, now):
     t = parse_time(it.get("时间", ""))
     d = dict(it)
@@ -70,16 +73,28 @@ def cmd_list():
 
 def cmd_today():
     items = load()
-    today = date.today().isoformat()
+    today = date.today()
     now = datetime.now()
-    out = [_fmt(it, now) for it in items
-           if str(it.get("时间", ""))[:10] == today]
-    out.sort(key=lambda x: x["时间"])
-    print(json.dumps({"ok": True, "今天": today, "日程": out}, ensure_ascii=False))
+    out = []
+    for it in items:
+        if it.get("完成"):
+            continue
+        rep = str(it.get("重复", "") or "").strip()
+        ts = str(it.get("时间", "") or "")
+        if rep == "每天":
+            out.append(_fmt(it, now))
+        elif rep.startswith("每周") and len(rep) == 3:
+            if WEEKDAY_CN.get(today.weekday()) == rep[-1]:
+                out.append(_fmt(it, now))
+        elif ts[:10] == today.isoformat():
+            out.append(_fmt(it, now))
+    out.sort(key=lambda x: x.get("时间", ""))
+    print(json.dumps({"ok": True, "今天": today.isoformat(), "日程": out},
+                     ensure_ascii=False))
     return 0
 
 
-def cmd_add(name, when, note="", cat="其他"):
+def cmd_add(name, when, note="", cat="其他", rep=""):
     name = str(name or "").strip()
     if not name:
         print(json.dumps({"ok": False, "错误": "事项不能为空"}, ensure_ascii=False))
@@ -92,7 +107,8 @@ def cmd_add(name, when, note="", cat="其他"):
     items = load()
     it = {"id": uuid.uuid4().hex[:8], "事项": name, "时间": when,
           "备注": str(note or "").strip(), "完成": False,
-          "分类": str(cat or "其他").strip()}
+          "分类": str(cat or "其他").strip(),
+          "重复": str(rep or "").strip()}
     items.append(it)
     save(items)
     print(json.dumps({"ok": True, "已添加": it}, ensure_ascii=False))
@@ -135,11 +151,12 @@ def main():
         return cmd_today()
     if cmd == "add":
         if len(args) < 3:
-            print(json.dumps({"ok": False, "用法": "add 事项 时间 [备注] [分类]"},
+            print(json.dumps({"ok": False, "用法": "add 事项 时间 [备注] [分类] [重复]"},
                              ensure_ascii=False))
             return 1
         return cmd_add(args[1], args[2], args[3] if len(args) > 3 else "",
-                       args[4] if len(args) > 4 else "其他")
+                       args[4] if len(args) > 4 else "其他",
+                       args[5] if len(args) > 5 else "")
     if cmd == "done":
         return cmd_done(args[1]) if len(args) > 1 else 1
     if cmd == "del":

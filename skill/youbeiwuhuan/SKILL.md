@@ -42,7 +42,7 @@ description: 北邮校园小管家，帮用户查课表、未交作业、校园�
 | 学校有什么新通知 | `python scripts/notices.py` |
 
 ### 写 / 删日程
-- 记日程：先把时间换算成 `YYYY-MM-DD HH:MM`（今天/明天/后天→真实日期，上午/下午/晚上→24小时制），再执行 `python scripts/schedule.py add "事项" "时间" "备注" "分类"`（备注、分类可省）。
+- 记日程：先把时间换算成 `YYYY-MM-DD HH:MM`（今天/明天/后天→真实日期，上午/下午/晚上→24小时制），再执行 `python scripts/schedule.py add "事项" "时间" "备注" "分类" "重复"`（备注/分类/重复都可省；「每天要做的」重复填「每天」，「每周固定某天」重复填「每周三」这种）。
 - 标记完成：先 `python scripts/schedule.py list` 找 id，再 `python scripts/schedule.py done <id>`。
 - 删除：先 `python scripts/schedule.py list` 找 id，再 `python scripts/schedule.py del <id>`。
 
