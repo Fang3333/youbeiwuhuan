@@ -17,6 +17,42 @@ import ucloud
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CAS_URL = ("https://auth.bupt.edu.cn/authserver/login"
            "?service=https%3A%2F%2Fucloud.bupt.edu.cn")
+TOKEN_CACHE = os.path.join(BASE, "token_cache.json")
+
+
+def _save_token(token, uid):
+    try:
+        with open(TOKEN_CACHE, "w", encoding="utf-8") as f:
+            json.dump({"token": token, "uid": uid,
+                       "时间": time.strftime("%Y-%m-%d %H:%M:%S")},
+                      f, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def _load_token():
+    try:
+        with open(TOKEN_CACHE, "r", encoding="utf-8") as f:
+            d = json.load(f)
+        return d.get("token"), d.get("uid")
+    except Exception:
+        return None, None
+
+
+def fetch_cached():
+    """用缓存的 access_token 直接抓作业，不弹窗、不重新登录。
+
+    返回 (items 或 None, error 或 None)。token 失效（401）时返回 error，
+    由调用方决定是否重新登录。
+    """
+    token, uid = _load_token()
+    if not token or not uid:
+        return None, "无缓存凭证"
+    try:
+        items = ucloud._fetch_all(token, uid)
+        return items, None
+    except Exception as e:
+        return None, str(e)
 
 
 def fetch(sno, pwd, headless=False):
@@ -72,6 +108,7 @@ def fetch(sno, pwd, headless=False):
     uid = ucloud._text(root.get("user_id") or root.get("userId"))
     if not token or not uid:
         return None, "未拿到 access_token"
+    _save_token(token, uid)  # 缓存凭证，下次免登录
     try:
         items = ucloud._fetch_all(token, uid)
         return items, None

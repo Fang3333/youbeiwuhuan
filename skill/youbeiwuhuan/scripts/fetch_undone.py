@@ -32,15 +32,22 @@ def main():
         print(json.dumps({"ok": False, "错误": "config.json 里没填学号或密码"}, ensure_ascii=False))
         return 1
     items, err = None, None
+    # 1) 优先用缓存的登录凭证（不弹窗、最快）
     try:
-        items, err = ucloud.fetch({"账号": {"学号": sno, "密码": pwd},
-                                   "教学云": {"启用": True}}, force=True)
+        items, err = login_playwright.fetch_cached()
     except Exception as e:
         err = str(e)
     if err:
-        # 纯 HTTP 登录被学校瑞数反爬拦（HTTP 401），改用真实浏览器登录
+        # 2) 缓存失效 → 真实浏览器重新登录（弹窗一次，登录后重新缓存）
         try:
             items, err = login_playwright.fetch(sno, pwd)
+        except Exception as e:
+            err = str(e)
+    if err:
+        # 3) 兜底：纯 HTTP（万一学校反爬撤了）
+        try:
+            items, err = ucloud.fetch({"账号": {"学号": sno, "密码": pwd},
+                                       "教学云": {"启用": True}}, force=True)
         except Exception as e:
             err = str(e)
     if err:
