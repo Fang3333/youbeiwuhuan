@@ -61,25 +61,42 @@ Copy-Item (Join-Path $skillRoot 'assets') (Join-Path $dshSkills 'assets') -Recur
 if (Test-Path $cfg) { Copy-Item $cfg $dshSkills -Force }
 Write-Host '  [4/5] 技能已装进小管家'
 
-# 6) 装免费模型（网页版登录插件，免 API key；装过则秒过）
-Write-Host '  [5/6] 准备模型接入（免费网页版，免 API key）...'
-if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
-  Write-Host '      正在装 pnpm ...'
-  npm install -g pnpm | Out-Null
+# 6) 模型接入：二选一（API key 快稳花钱 / 免费网页版慢但不要钱）
+Write-Host ''
+Write-Host '  [5/6] 模型怎么接？'
+Write-Host '    [1] API key —— 快、稳、花点小钱（推荐，几块钱用很久）'
+Write-Host '    [2] 免费网页版 —— 不要钱，但慢（延迟高）'
+$modelChoice = Read-Host '  输入 1 或 2（直接回车默认选 1）'
+if (-not $modelChoice) { $modelChoice = '1' }
+
+if ($modelChoice -eq '1') {
+  Write-Host ''
+  Write-Host '  你选了 API key。请按下面操作（key 是付费凭证，自己填、别发给别人）：'
+  Write-Host '    1) 浏览器打开 https://platform.deepseek.com ，手机号注册/登录'
+  Write-Host '    2) 左侧「API Keys」→「创建 API Key」→ 复制 sk- 开头的那串'
+  Write-Host '    3) 稍后 dsh 网页打开后：设置 → 模型 → DeepSeek → 粘贴 key 保存'
+  Write-Host '    4) 模型选 deepseek-flash'
+  Write-Host '    （新用户通常有免费额度，不够再充值，最低 10 元）'
+} else {
+  Write-Host '  你选了免费网页版（慢，但不要钱）。正在装插件...'
+  if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
+    Write-Host '      正在装 pnpm ...'
+    npm install -g pnpm | Out-Null
+  }
+  git config --global 'url."git@github.com:".insteadOf' 'https://github.com/' | Out-Null
+  $profYaml = Join-Path $env:USERPROFILE '.dsh\profiles\web\pnpm-workspace.yaml'
+  New-Item -ItemType Directory -Force -Path (Split-Path $profYaml) | Out-Null
+  Set-Content -Path $profYaml -Encoding UTF8 -Value @(
+    'packages:',
+    '  - .',
+    'nodeLinker: hoisted',
+    'allowBuilds:',
+    '  dsh-deepseek-web-login@https://codeload.github.com/cv-superding/dsh-deepseek-web-login/tar.gz/ece332e68bd74070263c30021e9878e422af6a8a: true'
+  )
+  Write-Host '      正在装模型插件（首次要下载几分钟）...'
+  npx -y @deepseek-ai/dsh plugin --profile web add github:cv-superding/dsh-deepseek-web-login 2>&1 | Out-Null
+  Write-Host '      模型插件已就绪'
 }
-git config --global 'url."git@github.com:".insteadOf' 'https://github.com/' | Out-Null
-$profYaml = Join-Path $env:USERPROFILE '.dsh\profiles\web\pnpm-workspace.yaml'
-New-Item -ItemType Directory -Force -Path (Split-Path $profYaml) | Out-Null
-Set-Content -Path $profYaml -Encoding UTF8 -Value @(
-  'packages:',
-  '  - .',
-  'nodeLinker: hoisted',
-  'allowBuilds:',
-  '  dsh-deepseek-web-login@https://codeload.github.com/cv-superding/dsh-deepseek-web-login/tar.gz/ece332e68bd74070263c30021e9878e422af6a8a: true'
-)
-Write-Host '      正在装模型插件（首次要下载几分钟）...'
-npx -y @deepseek-ai/dsh plugin --profile web add github:cv-superding/dsh-deepseek-web-login 2>&1 | Out-Null
-Write-Host '      模型插件已就绪'
 
 # 7) 查局域网 IP，启动服务并开放给手机
 $ip = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object {
